@@ -106,7 +106,7 @@ export const api = {
   async login(email, password) {
     const response =
       await fetch(
-        `${API_BASE}/login`,
+        `${API_BASE_URL}/login`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -173,7 +173,7 @@ export const api = {
   ) {
     const response =
       await fetch(
-        `${API_BASE}/signup`,
+        `${API_BASE_URL}/signup`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -213,7 +213,7 @@ export const api = {
 
     const response =
       await fetch(
-        `${API_BASE}/voice-notes/user/${userId}`,
+        `${API_BASE_URL}/voice-notes/user/${userId}`,
         {
           method: "GET",
         }
@@ -304,8 +304,8 @@ export const api = {
 
     const endpoint =
       voiceType === "recorded"
-        ? `${API_BASE}/voice-notes/record`
-        : `${API_BASE}/voice-notes/upload`;
+        ? `${API_BASE_URL}/voice-notes/record`
+        : `${API_BASE_URL}/voice-notes/upload`;
 
     // -----------------------------------------------------
     // DEBUG
@@ -436,7 +436,7 @@ export const api = {
 
     console.log(
       "ENDPOINT:",
-      `${API_BASE}/transcription`
+      `${API_BASE_URL}/transcription`
     );
 
     console.log(
@@ -445,7 +445,7 @@ export const api = {
 
     const response =
       await fetch(
-        `${API_BASE}/transcription`,
+        `${API_BASE_URL}/transcription`,
         {
           method: "POST",
 
@@ -514,7 +514,7 @@ export const api = {
 
     const response =
       await fetch(
-        `${API_BASE}/summarization`,
+        `${API_BASE_URL}/summarization`,
         {
           method: "POST",
 
@@ -567,7 +567,7 @@ export const api = {
     try {
       const response =
         await fetch(
-          `${API_BASE}/voice-notes/${noteId}`,
+          `${API_BASE_URL}/voice-notes/${noteId}`,
           {
             method: "DELETE",
           }

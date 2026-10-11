@@ -293,20 +293,98 @@ def health():
         )
 
 
+# =========================================================
+# SIGNUP
+# =========================================================
 
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+@app.post("/signup")
+def signup(request: SignupRequest):
+    name = request.name.strip()
+    email = request.email.strip().lower()
+    password = request.password
+
+    if not name or not email or not password:
+        raise HTTPException(
+            status_code=400,
+            detail="Name, email and password are required."
+        )
+
+    if len(password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must not exceed 72 bytes."
+        )
+
+    try:
+        with engine.connect() as conn:
+            existing_user = conn.execute(
+                text("""
+                    SELECT id
+                    FROM users
+                    WHERE email = :email
+                """),
+                {"email": email}
+            ).fetchone()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=409,
+                detail="An account with this email already exists."
+            )
+
+        password_hash = bcrypt.hashpw(
+            password.encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8")
+
+        with engine.begin() as conn:
+            result = conn.execute(
+                text("""
+                    INSERT INTO users (name, email, password)
+                    VALUES (:name, :email, :password)
+                """),
+                {
+                    "name": name,
+                    "email": email,
+                    "password": password_hash
+                }
+            )
+
+            user_id = result.lastrowid
+
+        return {
+            "message": "Signup successful",
+            "user_id": user_id,
+            "name": name,
+            "email": email
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        print("Signup error:", e)
+        raise HTTPException(
+            status_code=500,
+            detail="Signup failed because of a server/database error."
+        )
 
 
 # =========================================================
-
 # LOGIN
-
 # =========================================================
-
-
 
 @app.post("/login")
 def login(request: LoginRequest):
     try:
+        email = request.email.strip().lower()
+
         with engine.connect() as conn:
             user = conn.execute(
                 text("""
@@ -314,7 +392,7 @@ def login(request: LoginRequest):
                     FROM users
                     WHERE email = :email
                 """),
-                {"email": request.email}
+                {"email": email}
             ).fetchone()
 
         if not user:
@@ -326,8 +404,6 @@ def login(request: LoginRequest):
         stored_password = str(user.password or "")
         supplied_password = request.password
 
-        # Verify bcrypt hashes; retain compatibility with legacy
-        # plain-text passwords until existing records are migrated.
         if stored_password.startswith(("$2a$", "$2b$", "$2y$")):
             try:
                 password_valid = bcrypt.checkpw(
@@ -337,6 +413,7 @@ def login(request: LoginRequest):
             except (ValueError, TypeError):
                 password_valid = False
         else:
+            # Temporary compatibility for older plain-text records.
             password_valid = supplied_password == stored_password
 
         if not password_valid:
@@ -359,12 +436,15 @@ def login(request: LoginRequest):
 
     except HTTPException:
         raise
+
     except Exception as e:
         print("Login error:", e)
         raise HTTPException(
             status_code=500,
             detail="Login failed because of a server/database error."
         )
+
+
 
 
 # =========================================================

@@ -242,7 +242,8 @@ export const api = {
     audioBlob,
     title,
     userId,
-    voiceType = "upload"
+    voiceType = "upload",
+    durationSeconds = null
   ) {
     // -----------------------------------------------------
     // VALIDATE AUDIO
@@ -275,6 +276,10 @@ export const api = {
       "user_id",
       String(userId)
     );
+
+    if (Number.isFinite(Number(durationSeconds)) && Number(durationSeconds) >= 0) {
+      formData.append("duration_seconds", String(durationSeconds));
+    }
 
     // -----------------------------------------------------
     // FILE NAME

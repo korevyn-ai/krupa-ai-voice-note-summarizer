@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 
 import VoiceVisualizer from "../components/VoiceVisualizer";
-import { api } from "../api/client";
 
 export default function RecordVoicePage({
   onAudioReady,
@@ -81,11 +80,7 @@ export default function RecordVoicePage({
       segmentStartedAtRef.current !== null
     ) {
       elapsedBeforeRunRef.current +=
-        Math.floor(
-          (Date.now() -
-            segmentStartedAtRef.current) /
-            1000
-        );
+        (Date.now() - segmentStartedAtRef.current) / 1000;
 
       segmentStartedAtRef.current = null;
     }
@@ -107,19 +102,14 @@ export default function RecordVoicePage({
       return elapsedBeforeRunRef.current;
     }
 
-    return (
-      elapsedBeforeRunRef.current +
-      Math.floor(
-        (Date.now() -
-          segmentStartedAtRef.current) /
-          1000
-      )
-    );
+    return elapsedBeforeRunRef.current +
+      (Date.now() - segmentStartedAtRef.current) / 1000;
   };
 
   const formatTime = (secs) => {
-    const mins = Math.floor(secs / 60);
-    const rem = secs % 60;
+    const roundedSeconds = Math.round(secs);
+    const mins = Math.floor(roundedSeconds / 60);
+    const rem = roundedSeconds % 60;
 
     return `${String(mins).padStart(
       2,
@@ -471,102 +461,8 @@ export default function RecordVoicePage({
         "UPLOADING RECORDED AUDIO TO BACKEND..."
       );
 
-      // -----------------------------------------------
-      // GET LOGGED-IN USER
-      // -----------------------------------------------
-
-      const storedUser =
-        localStorage.getItem(
-          "voicemind_user"
-        );
-
-      if (!storedUser) {
-        throw new Error(
-          "User not found. Please login again."
-        );
-      }
-
-      const user =
-        JSON.parse(storedUser);
-
-      const userId =
-        user?.id;
-
-      if (!userId) {
-        throw new Error(
-          "User ID not found. Please login again."
-        );
-      }
-
-      console.log(
-        "RECORDING USER ID:",
-        userId
-      );
-
-      // -----------------------------------------------
-      // CREATE FILE
-      // -----------------------------------------------
-
-      const recordedFile =
-        new File(
-          [audioBlob],
-          `recorded_voice_${Date.now()}.webm`,
-          {
-            type:
-              audioBlob.type ||
-              "audio/webm",
-          }
-        );
-
-      console.log(
-        "RECORDED FILE:",
-        recordedFile
-      );
-
-      // -----------------------------------------------
-      // UPLOAD RECORDING
-      // -----------------------------------------------
-
-      const uploadResult =
-        await api.uploadVoiceNote(
-          recordedFile,
-          "Recorded Voice Note",
-          userId
-        );
-
-      console.log(
-        "RECORDED AUDIO UPLOAD RESULT:",
-        uploadResult
-      );
-
-      const noteId =
-        uploadResult?.note_id;
-
-      if (!noteId) {
-        throw new Error(
-          "Backend did not return note_id."
-        );
-      }
-
-      console.log(
-        "RECORDED AUDIO NOTE ID:",
-        noteId
-      );
-
-      // -----------------------------------------------
-      // SAVE NOTE ID
-      // -----------------------------------------------
-
-      localStorage.setItem(
-        "voicenote_note_id",
-        String(noteId)
-      );
-
-      // -----------------------------------------------
-      // SEND TO APP
-      // -----------------------------------------------
-
-      onAudioReady({
+      const durationSeconds = getElapsedSeconds();
+      await onAudioReady({
         audioUrl:
           recordedAudioUrl,
 
@@ -574,10 +470,10 @@ export default function RecordVoicePage({
           audioBlob,
 
         duration:
-          formatTime(seconds),
+          formatTime(durationSeconds),
 
         durationSeconds:
-          seconds,
+          durationSeconds,
 
         type:
           "recorded",
@@ -587,9 +483,6 @@ export default function RecordVoicePage({
 
         language:
           selectedLanguage,
-
-        noteId:
-          noteId,
 
         initialTranscript:
           "",

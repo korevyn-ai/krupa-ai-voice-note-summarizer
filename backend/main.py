@@ -4,6 +4,8 @@ from __future__ import annotations
 import os
 import shutil
 import mimetypes
+import math
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import (
@@ -16,6 +18,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import text
+from mutagen import File as MutagenFile
 from google import genai
 from google.genai import types
 import bcrypt
@@ -89,6 +92,26 @@ LANGUAGE_MAP = {
 }
 
 
+def ensure_duration_column():
+    with engine.begin() as conn:
+        column = conn.execute(
+            text("SHOW COLUMNS FROM voice_notes LIKE 'duration_seconds'")
+        ).fetchone()
+        if not column:
+            conn.execute(
+                text(
+                    "ALTER TABLE voice_notes "
+                    "ADD COLUMN duration_seconds DOUBLE NULL"
+                )
+            )
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    ensure_duration_column()
+    yield
+
+
 # =========================================================
 # FASTAPI APP
 # =========================================================
@@ -97,6 +120,7 @@ app = FastAPI(
     title="AI Voice Note Summarizer",
     description="Backend API for AI Voice Note Summarizer",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -118,6 +142,17 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 print("Python upload folder:", UPLOAD_FOLDER)
+
+
+def get_audio_duration_seconds(file_path: str):
+    try:
+        audio = MutagenFile(file_path)
+        duration = float(audio.info.length) if audio and audio.info else None
+        if duration is not None and math.isfinite(duration) and duration > 0:
+            return duration
+    except (OSError, TypeError, ValueError, AttributeError):
+        pass
+    return None
 
 
 # =========================================================
@@ -328,6 +363,7 @@ def save_audio_file(file: UploadFile, prefix: str, user_id: int):
 async def record_voice_note(
     user_id: int = Form(...),
     file: UploadFile = File(...),
+    duration_seconds: float | None = Form(None),
 ):
     file_path = None
 
@@ -349,18 +385,21 @@ async def record_voice_note(
             )
 
         file_path = save_audio_file(file, "recorded", user_id)
+        if duration_seconds is None or not math.isfinite(duration_seconds) or duration_seconds < 0:
+            duration_seconds = get_audio_duration_seconds(file_path)
 
         with engine.begin() as conn:
             result = conn.execute(
                 text("""
                     INSERT INTO voice_notes
-                        (email, upload_voice, recorded_voice)
+                        (email, upload_voice, recorded_voice, duration_seconds)
                     VALUES
-                        (:email, NULL, :recorded_voice)
+                        (:email, NULL, :recorded_voice, :duration_seconds)
                 """),
                 {
                     "email": user.email,
                     "recorded_voice": file_path,
+                    "duration_seconds": duration_seconds,
                 },
             )
             note_id = result.lastrowid
@@ -370,6 +409,7 @@ async def record_voice_note(
             "note_id": note_id,
             "upload_voice": None,
             "recorded_voice": file_path,
+            "duration_seconds": duration_seconds,
         }
 
     except HTTPException:
@@ -401,6 +441,7 @@ async def record_voice_note(
 async def upload_voice_note(
     user_id: int = Form(...),
     file: UploadFile = File(...),
+    duration_seconds: float | None = Form(None),
 ):
     file_path = None
 
@@ -422,18 +463,21 @@ async def upload_voice_note(
             )
 
         file_path = save_audio_file(file, "upload", user_id)
+        if duration_seconds is None or not math.isfinite(duration_seconds) or duration_seconds < 0:
+            duration_seconds = get_audio_duration_seconds(file_path)
 
         with engine.begin() as conn:
             result = conn.execute(
                 text("""
                     INSERT INTO voice_notes
-                        (email, upload_voice, recorded_voice)
+                        (email, upload_voice, recorded_voice, duration_seconds)
                     VALUES
-                        (:email, :upload_voice, NULL)
+                        (:email, :upload_voice, NULL, :duration_seconds)
                 """),
                 {
                     "email": user.email,
                     "upload_voice": file_path,
+                    "duration_seconds": duration_seconds,
                 },
             )
             note_id = result.lastrowid
@@ -443,6 +487,7 @@ async def upload_voice_note(
             "note_id": note_id,
             "upload_voice": file_path,
             "recorded_voice": None,
+            "duration_seconds": duration_seconds,
         }
 
     except HTTPException:
@@ -775,6 +820,7 @@ def get_user_voice_notes(user_id: int):
                         email,
                         upload_voice,
                         recorded_voice,
+                        duration_seconds,
                         transcript,
                         summary,
                         language,
@@ -789,11 +835,35 @@ def get_user_voice_notes(user_id: int):
         history = []
 
         for note in notes:
+            duration_seconds = note.duration_seconds
+            if duration_seconds is None:
+                stored_path = note.upload_voice or note.recorded_voice
+                if stored_path:
+                    filename = os.path.basename(str(stored_path))
+                    file_path = os.path.join(UPLOAD_FOLDER, filename)
+                    if os.path.isfile(file_path):
+                        duration_seconds = get_audio_duration_seconds(file_path)
+                        if duration_seconds is not None:
+                            with engine.begin() as conn:
+                                conn.execute(
+                                    text("""
+                                        UPDATE voice_notes
+                                        SET duration_seconds = :duration_seconds
+                                        WHERE id = :note_id
+                                          AND duration_seconds IS NULL
+                                    """),
+                                    {
+                                        "duration_seconds": duration_seconds,
+                                        "note_id": note.id,
+                                    },
+                                )
+
             history.append({
                 "id": note.id,
                 "email": note.email,
                 "upload_voice": note.upload_voice,
                 "recorded_voice": note.recorded_voice,
+                "duration_seconds": duration_seconds,
                 "transcript": note.transcript,
                 "summary": note.summary,
                 "language": note.language,

@@ -1,6 +1,8 @@
+
 import "./App.css";
 import { useState } from "react";
 
+import Login from "./Login";
 import Navbar from "./components/Navbar";
 import RecordVoice from "./components/RecordVoice";
 import UploadAudio from "./components/UploadAudio";
@@ -8,19 +10,41 @@ import SpeechToText from "./components/SpeechToText";
 import AISummary from "./components/AISummary";
 import KeyPoints from "./components/KeyPoints";
 
-function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
 
-  const handleLogin = (email, password) => {
-    if (email && password) {
-      setLoggedIn(true);
+function App() {
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem("voicemind_user");
+      const isLoggedIn = localStorage.getItem("voicemind_logged_in");
+
+      if (isLoggedIn === "true" && savedUser) {
+        return JSON.parse(savedUser);
+      }
+
+      return null;
+    } catch {
+      localStorage.removeItem("voicemind_user");
+      localStorage.removeItem("voicemind_logged_in");
+      return null;
     }
+  });
+
+  const handleLogin = (loggedInUser) => {
+    if (!loggedInUser) return;
+
+    setUser(loggedInUser);
   };
 
-  if (!loggedIn) {
-    return (
-      <Login onLogin={handleLogin} />
-    );
+  const handleLogout = () => {
+    localStorage.removeItem("voicemind_user");
+    localStorage.removeItem("voicemind_logged_in");
+    localStorage.removeItem("voicemind_token");
+
+    setUser(null);
+  };
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
   }
 
   return (
@@ -28,11 +52,25 @@ function App() {
       <Navbar />
 
       <div className="home">
-        <h1>AI Voice Note Summarizer</h1>
+        <div className="welcome-header">
+          <h1>AI Voice Note Summarizer</h1>
 
-        <p className="subtitle">
-          Convert your voice into smart notes with AI
-        </p>
+          <p className="subtitle">
+            Convert your voice into smart notes with AI
+          </p>
+
+          <p>
+            Welcome, {user.name || "User"}!
+          </p>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="logout-button"
+          >
+            Logout
+          </button>
+        </div>
 
         <div className="buttons">
           <RecordVoice />
@@ -54,48 +92,6 @@ function App() {
         </div>
       </div>
     </>
-  );
-}
-
-function Login({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onLogin(email, password);
-  };
-
-  return (
-    <div className="login-page">
-      <div className="login-box">
-        <h1>AI Voice Note Summarizer</h1>
-
-        <h2>Login</h2>
-
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            placeholder="Enter Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Enter Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
-          <button type="submit">
-            Login
-          </button>
-        </form>
-      </div>
-    </div>
   );
 }
 

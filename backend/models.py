@@ -4,7 +4,8 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    DateTime
+    DateTime,
+    Float,
 )
 
 from sqlalchemy.sql import func
@@ -73,6 +74,11 @@ class VoiceNote(Base):
 
     recorded_voice = Column(
         String(500),
+        nullable=True
+    )
+
+    duration_seconds = Column(
+        Float,
         nullable=True
     )
 

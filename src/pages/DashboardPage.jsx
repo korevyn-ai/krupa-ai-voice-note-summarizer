@@ -9,7 +9,6 @@ import {
   Trash2,
   Zap,
   Clock,
-  Calendar,
   Star,
 } from "lucide-react";
 
@@ -32,9 +31,13 @@ export default function DashboardPage({
   const totalNotesCount = notes.length;
 
   const totalSeconds = notes.reduce((acc, note) => {
-    if (note.durationSeconds) {
-      return acc + note.durationSeconds;
-    }
+    const seconds = Number(
+  note.durationSeconds ?? note.duration_seconds
+);
+
+if (Number.isFinite(seconds) && seconds > 0) {
+  return acc + seconds;
+}
 
     if (note.duration) {
       const parts = note.duration.split(":").map(Number);
@@ -47,12 +50,34 @@ export default function DashboardPage({
     return acc;
   }, 0);
 
-  const totalMins = Math.floor(totalSeconds / 60);
-  const totalRemSecs = totalSeconds % 60;
+  const roundedTotalSeconds = Math.round(totalSeconds);
+  const totalMins = Math.floor(roundedTotalSeconds / 60);
+  const totalRemSecs = roundedTotalSeconds % 60;
+  const formattedTotalDuration = `${totalMins} min ${totalRemSecs} sec`;
 
-  const formattedTotalDuration = `${totalMins}:${String(
-    totalRemSecs
-  ).padStart(2, "0")}`;
+  const formatDuration = (note) => {
+  const rawSeconds = note.durationSeconds ?? note.duration_seconds;
+  const seconds = rawSeconds == null ? NaN : Number(rawSeconds);
+
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    const roundedSeconds = Math.round(seconds);
+    const mins = Math.floor(roundedSeconds / 60);
+    const secs = roundedSeconds % 60;
+
+    return `${String(mins).padStart(2, "0")}:${String(
+      secs
+    ).padStart(2, "0")}`;
+  }
+
+  if (typeof note.duration === "string" && note.duration.includes(":")) {
+    const [minutes, secondsPart] = note.duration.split(":").map(Number);
+    if (Number.isFinite(minutes) && Number.isFinite(secondsPart)) {
+      return `${String(minutes).padStart(2, "0")}:${String(secondsPart).padStart(2, "0")}`;
+    }
+  }
+
+  return "--";
+};
 
   // =========================
   // OPEN FILE SELECTOR
@@ -172,7 +197,7 @@ Date: ${
         : "-")
     }
 
-Duration: ${note.duration || "00:00"}
+Duration: ${formatDuration(note)}
 
 Summary:
 ${note.summary || ""}
@@ -641,8 +666,8 @@ ${note.transcript || ""}
                     </td>
 
                     <td style={{ padding: "16px 20px" }}>
-                      {note.duration || "00:00"}
-                    </td>
+  {formatDuration(note)}
+</td>
 
                     <td style={{ padding: "16px 20px" }}>
                       {note.date ||
@@ -855,69 +880,6 @@ ${note.transcript || ""}
               </strong>
             </div>
 
-            <div
-              style={{
-                padding: "14px",
-                background: "#ecfdf5",
-                borderRadius: "12px",
-              }}
-            >
-              <Calendar
-                size={18}
-                color="#10b981"
-              />
-
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "#64748b",
-                  marginTop: "6px",
-                }}
-              >
-                This Week
-              </div>
-
-              <strong
-                style={{
-                  fontSize: "20px",
-                  color: "#111827",
-                }}
-              >
-                2
-              </strong>
-            </div>
-
-            <div
-              style={{
-                padding: "14px",
-                background: "#fffbeb",
-                borderRadius: "12px",
-              }}
-            >
-              <Star
-                size={18}
-                color="#f59e0b"
-              />
-
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "#64748b",
-                  marginTop: "6px",
-                }}
-              >
-                Best Summary
-              </div>
-
-              <strong
-                style={{
-                  fontSize: "20px",
-                  color: "#111827",
-                }}
-              >
-                98%
-              </strong>
-            </div>
           </div>
         </div>
 

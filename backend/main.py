@@ -32,6 +32,8 @@ import os
 
 import shutil
 
+os.environ["XDG_CACHE_HOME"] = "/tmp/whisper_cache"
+
 import whisper
 
 import bcrypt
@@ -209,6 +211,7 @@ def get_whisper_model():
     if whisper_model is None:
 
         print("Loading Whisper tiny model...")
+
 
 
 

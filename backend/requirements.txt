@@ -7,4 +7,3 @@ python-dotenv
 python-multipart
 bcrypt
 google-genai
-openai-whisper

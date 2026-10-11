@@ -524,25 +524,7 @@ export default function App() {
 
         <FlowBreadcrumbs
           currentStep={currentView}
-          onSelectStep={(step) => {
-            if (step === "new-note" || step === "record") {
-              setCurrentView("upload");
-            } else if (step === "audio-player") {
-              if (
-                activeAudioData?.audioUrl ||
-                activeAudioData?.audioBlob
-              ) {
-                setCurrentView("audio-player");
-              } else {
-                showToast(
-                  "Please record or upload an audio file first."
-                );
-                setCurrentView("record");
-              }
-            } else {
-              setCurrentView(step);
-            }
-          }}
+          onSelectStep={(step) => setCurrentView(step)}
         />
 
         <main className="app-content-body">

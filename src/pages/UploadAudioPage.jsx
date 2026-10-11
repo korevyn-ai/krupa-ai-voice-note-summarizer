@@ -12,7 +12,6 @@ import { getAudioDurationSeconds } from "../lib/audioDuration";
 export default function UploadAudioPage({ onAudioReady, selectedLanguage = "English" }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -47,26 +46,6 @@ export default function UploadAudioPage({ onAudioReady, selectedLanguage = "Engl
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) {
-      handleProcessFile(file);
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files?.[0];
     if (file) {
       handleProcessFile(file);
     }
@@ -221,39 +200,13 @@ export default function UploadAudioPage({ onAudioReady, selectedLanguage = "Engl
               <UploadCloud size={18} />
               Choose Audio File
             </button>
-          </div>
 
-          <div
-            className={`drag-drop-zone ${
-              isDragging ? "drag-over" : ""
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                fileInputRef.current?.click();
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            <h3>Drag and drop your audio file here</h3>
-
-            <p className="drop-sub-text">
-              or <span className="browse-text">browse files</span>
-            </p>
-
-            <div className="supported-formats-pills">
+            <div className="supported-formats-pills" style={{ marginTop: "18px" }}>
               <span>MP3</span>
               <span>WAV</span>
               <span>M4A</span>
               <span>WebM</span>
-              <span className="limit-pill">
-                Max 18MB
-              </span>
+              <span className="limit-pill">Max 18MB</span>
             </div>
           </div>
         </div>

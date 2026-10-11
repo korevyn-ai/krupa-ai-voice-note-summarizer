@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { 
   LayoutDashboard, 
   Mic, 
+  UploadCloud,
   PlayCircle, 
   Cpu, 
   FileText, 
@@ -14,7 +15,8 @@ import {
 export default function FlowBreadcrumbs({ currentStep, onSelectStep }) {
   const steps = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'record', label: 'Record / Upload', icon: Mic },
+    { id: 'record', label: 'Record Audio', icon: Mic },
+    { id: 'upload', label: 'Upload Audio', icon: UploadCloud },
     { id: 'audio-player', label: 'Audio Player', icon: PlayCircle },
     { id: 'processing', label: 'Speech-to-Text', icon: Cpu },
     { id: 'transcript', label: 'Transcript', icon: FileText },
@@ -23,14 +25,10 @@ export default function FlowBreadcrumbs({ currentStep, onSelectStep }) {
     { id: 'saved-notes', label: 'Saved Notes', icon: FolderClock },
   ];
 
-  // Helper to map currentView to step index
-  const getStepIndex = (viewId) => {
-    if (viewId === 'upload') return 1;
-    const idx = steps.findIndex(s => s.id === viewId);
-    return idx >= 0 ? idx : 0;
-  };
-
-  const currentIndex = getStepIndex(currentStep);
+  const currentIndex = Math.max(
+    steps.findIndex((step) => step.id === currentStep),
+    0
+  );
 
   return (
     <div className="flow-breadcrumbs-wrapper">
@@ -42,7 +40,7 @@ export default function FlowBreadcrumbs({ currentStep, onSelectStep }) {
       <div className="breadcrumbs-scroll-row">
         {steps.map((step, idx) => {
           const Icon = step.icon;
-          const isCurrent = (step.id === currentStep) || (step.id === 'record' && (currentStep === 'record' || currentStep === 'upload'));
+          const isCurrent = step.id === currentStep;
           const isPassed = idx < currentIndex;
 
           return (

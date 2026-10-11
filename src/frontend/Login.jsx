@@ -1,3 +1,4 @@
+```jsx
 import "./Login.css";
 import { useState } from "react";
 import { api } from "../api/client";
@@ -18,7 +19,6 @@ function Login({ onLogin }) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password;
 
-    // Basic validation
     if (isSignUp && !cleanName) {
       setError("Please enter your name.");
       return;
@@ -45,14 +45,12 @@ function Login({ onLogin }) {
       let response;
 
       if (isSignUp) {
-        // SIGN UP
         response = await api.register(
           cleanName,
           cleanEmail,
           cleanPassword
         );
       } else {
-        // LOGIN
         response = await api.login(
           cleanEmail,
           cleanPassword
@@ -61,19 +59,16 @@ function Login({ onLogin }) {
 
       console.log("Authentication response:", response);
 
-      // Get user information from backend response
       const user = response?.user || {
         id: response?.user_id,
-        name: response?.name || cleanName || "Krupa Lohar",
+        name: response?.name || cleanName || "User",
         email: response?.email || cleanEmail,
       };
 
-      // Make sure email exists
       if (!user.email) {
         user.email = cleanEmail;
       }
 
-      // Save logged-in user
       localStorage.setItem(
         "voicemind_user",
         JSON.stringify(user)
@@ -84,7 +79,6 @@ function Login({ onLogin }) {
         "true"
       );
 
-      // Send user object to App.jsx
       if (typeof onLogin === "function") {
         onLogin(user);
       }
@@ -111,7 +105,6 @@ function Login({ onLogin }) {
 
   return (
     <div className="login-page">
-
       {/* LEFT SECTION */}
       <div className="left-section">
         <div className="logo">🎙️</div>
@@ -158,11 +151,8 @@ function Login({ onLogin }) {
 
       {/* RIGHT SECTION */}
       <div className="right-section">
-
         <h2>
-          {isSignUp
-            ? "Create your account"
-            : "Welcome Back 👋"}
+          {isSignUp ? "Create your account" : "Welcome!"}
         </h2>
 
         <p className="subtitle">
@@ -172,7 +162,6 @@ function Login({ onLogin }) {
         </p>
 
         <form onSubmit={handleSubmit}>
-
           {/* NAME - SIGNUP ONLY */}
           {isSignUp && (
             <>
@@ -202,8 +191,8 @@ function Login({ onLogin }) {
           <input
             id="login-email"
             type="email"
-            placeholder="name@company.com"
-            autoComplete="email"
+            placeholder="Enter your email"
+            autoComplete="off"
             value={email}
             onChange={(event) =>
               setEmail(event.target.value)
@@ -222,13 +211,9 @@ function Login({ onLogin }) {
             placeholder={
               isSignUp
                 ? "At least 8 characters"
-                : "Password"
+                : "Enter your password"
             }
-            autoComplete={
-              isSignUp
-                ? "new-password"
-                : "current-password"
-            }
+            autoComplete="off"
             minLength={isSignUp ? 8 : undefined}
             value={password}
             onChange={(event) =>
@@ -272,29 +257,6 @@ function Login({ onLogin }) {
           </button>
         </form>
 
-        {/* GOOGLE LOGIN */}
-        {!isSignUp && (
-          <>
-            <div className="or">
-              <span></span>
-              or
-              <span></span>
-            </div>
-
-            <button
-              className="google-button"
-              type="button"
-              onClick={() =>
-                setError(
-                  "Google login is not connected yet."
-                )
-              }
-            >
-              🌐 Continue with Google
-            </button>
-          </>
-        )}
-
         {/* SIGNUP / LOGIN SWITCH */}
         <p className="signup">
           {isSignUp
@@ -308,10 +270,10 @@ function Login({ onLogin }) {
             {isSignUp ? "Login" : "Sign Up"}
           </button>
         </p>
-
       </div>
     </div>
   );
 }
 
 export default Login;
+```
